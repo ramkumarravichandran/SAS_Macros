@@ -1,0 +1,119 @@
+/************************************************************************************************************
+						Transposing - Wide to Long
+			
+Macro Objective: The macro will transpose the data from wide format to long format.Please see example below for better understanding
+Prepared By:	 Rajat Mathur [Rajat.Mathur@DiamondConsultants.com]
+Date of Creation: Jan 15th 2009
+Edited By:
+Edited On:	
+Changes Made:
+
+How to Use Macro:1. Include this file - "C:\xxx\Transpose_Wide_to_Long.txt";
+		 2. Call the macro by putting appropriate inputs for each parameter
+		 
+		 Wide_to_Long(inp_wide=<input_wide_data>,out_long=<output_long_data>,
+		 varlist=<list of variable that needs to be transposed>,
+		 unique_id=<Variable(s) on which wide data is unique>,
+		 suffix_var=<a new variable will be created that holds the value of current suffix>,
+		 suffix_len=lenght of suffix);
+		 
+		 where:
+		 	data_in  = name of input data set. eg. libname.dataset
+			data_out = name of output data set. eg. libname2.dataset2
+			varlist  = list of ALL variables which needs to be transposed
+			unique_id = Variable(s) on which wide data is unique 
+			suffix_var  = A new variable shall be created that will have the suffix value
+			suffix_len = Length of Suffix value
+			
+Illustrative Example:
+
+Input Data Set:
+famid faminc96 faminc97 faminc98 spend96 spend97 spend98 debt96 debt97 debt98; 
+
+1 	40000 	40500 	41000 	 38000 	 39000 	 40000 	 yes 	 yes 	no 
+2 	45000 	45400 	45800 	 42000 	 43000 	 44000 	 yes 	 no  	no 
+3 	75000 	76000 	77000 	 70000 	 71000 	 72000 	 no  	 no 	no 
+
+Output Data Set:
+famid   faminc   spend      debt     year
+
+1       40000    38000       yes      96
+1       40500    39000       yes      97
+1       41000    40000       no       98
+2       45000    42000       yes      96
+2       45400    43000       no       97
+2       45800    44000       no       98
+3       75000    70000       no       96
+3       76000    71000       no       97
+3       77000    72000       no       98 	
+
+Here suffix_var is Year and suffix_len is 2 (since 96, 97 etc all are of length 2) and
+varlist is faminc spend debt year and NOT faminc96 or spend96 or debt96 etc.
+
+
+Algo for Macro:
+1. Sort the data on Unique ID(s)
+2. For each variable use Proc Transpose to transpose the data and get output dataset for different variables
+3. Create new variable of suffix_var in each data set
+4. Merge all obtained data sets for each variable to get the output dataset
+
+Reference: http://www.ats.ucla.edu/stat/sas/modules/wtol_transpose.htm
+
+*************************************************************************************************************/
+***************    		0. Start of SAS Macro                                      ******************;
+
+%macro Wide_to_Long(inp_wide=,out_long=,varlist=,unique_id=,suffix_var=,suffix_len=);
+
+		%local temp_list;
+		%let temp_list=;
+		%local cnt this_var;
+		%let this_var= %scan (&varlist, 1, %str(" "));
+		%let cnt=1;
+
+******************	1. Sort the data on Unique ID(s)		****************************************;
+	
+		proc sort data=&inp_wide out=_wide_;
+		by &unique_id ;
+		run;
+		
+		%do %while( &this_var ne );
+		
+************* 		2. For each variable use Proc Transpose to transpose the data and get *****************;
+*************		output dataset for different variables		 		***********************;
+
+			proc transpose data=_wide_(keep=&this_var.: &unique_id) out=_&this_var._ prefix=&this_var;
+    			by &unique_id ;
+    			var &this_var.:;
+			run;
+
+*************		3. Create new variable of suffix_var in each data set		***********************;
+			
+			data _&this_var._;
+			set _&this_var._;
+			_l_=length(_name_)-&suffix_len +1;
+			&suffix_var=input(substr(_name_,_l_,&suffix_len), 5.);
+			rename &this_var.1=&this_var;
+			drop _name_ _l_;
+			run;
+			
+			%let temp_list=&temp_list _&this_var._;
+				
+		%let cnt = %eval(&cnt+1);
+		%let this_var = %scan(&varlist ,&cnt , %str(" "));
+		%end;
+	
+**********	4. Merge all obtained data sets for each variable to get the output dataset	*****************;
+
+		data &out_long;
+		merge &temp_list;
+		by &unique_id &suffix_var;
+		run;
+
+
+%mend Wide_to_Long;
+
+***************************** End of SAS macro*******************************************************************;
+
+
+
+
