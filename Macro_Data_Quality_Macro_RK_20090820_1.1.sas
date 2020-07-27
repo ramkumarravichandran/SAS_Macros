@@ -1,3 +1,5 @@
+/*Contact: ram.nit05@gmail.com*/
+
 options compress=yes obs=max;
 
 %macro dqr(data_in=,num_excel=,char_excel=);
