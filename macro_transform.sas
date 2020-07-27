@@ -1,5 +1,5 @@
 /*Contact: ram.nit05@gmail.com*/
-
+/*Macro helps choose the best transformation from one of 8 (Square, log, etc.) based on R2 values*/
 %MACRO transform(basedata, depvar, groups, destination);
 
 PROC CONTENTS DATA = &basedata OUT = varlabel NOPRINT;
