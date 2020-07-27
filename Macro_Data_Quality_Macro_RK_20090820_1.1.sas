@@ -1,5 +1,5 @@
 /*Contact: ram.nit05@gmail.com*/
-
+/*Macro does univariate analyses on all the variables (Char, Num) in the input table. The output csv can be used for decisions on Capping, Missing & Transformation*/
 options compress=yes obs=max;
 
 %macro dqr(data_in=,num_excel=,char_excel=);
